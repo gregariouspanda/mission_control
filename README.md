@@ -6,12 +6,13 @@ Sketch: [`mission_control.ino`](mission_control.ino)
 
 ## Parts
 
-- Arduino Uno R3
-- DFPlayer Mini + microSD card + speaker
-- HW-179 8-digit display (MAX7219)
-- 16x2 I2C LCD (PCF8574 backpack)
-- 5 toggle switches, 1 momentary push button
+- [Arduino Uno R3]([url](https://store-usa.arduino.cc/products/arduino-uno-rev3?utm_source=google&utm_medium=cpc&utm_campaign=US-Pmax&gad_source=1&gad_campaignid=21317508903&gbraid=0AAAAACbEa84YkpgRf37rKlTbKfjsyDoIh&gclid=Cj0KCQjwrvHWBhDKARIsABmp7h3uA3D3UE52SMWmsBiArJ4GiXsLNI7Favq0q5SRHtq013amH8c-VRcaAp9uEALw_wcB))
+- DFPlayer Mini + microSD card + [speaker]([url](https://www.amazon.com/dp/B0C6F9RGXF?ref=ppx_yo2ov_dt_b_fed_asin_title))
+- [HW-179 8-digit display (MAX7219)]([url](https://www.amazon.com/dp/B01D0WSCJA?ref=ppx_yo2ov_dt_b_fed_asin_title))
+- [16x2 I2C LCD]([url](https://www.amazon.com/dp/B019K5X53O?ref=ppx_yo2ov_dt_b_fed_asin_title))
+- [5 toggle switches]([url](https://www.amazon.com/dp/B08MZRB4T1?ref=ppx_yo2ov_dt_b_fed_asin_title)), 1 momentary push button
 - ~1k resistor (DFPlayer RX line)
+- [6 x LED]([url](https://www.amazon.com/dp/B0DHX6DD85?ref=ppx_yo2ov_dt_b_fed_asin_title)) + resistors
 
 ## Libraries (Arduino Library Manager)
 
