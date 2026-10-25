@@ -1,0 +1,78 @@
+# Mission Control
+
+Arduino Uno R3 sketch for a mission-control prop: five toggle switches that trigger audio, a mission timer on an 8-digit display, a rotating LCD message board, and a timer reset button.
+
+Sketch: [`mission_control.ino`](mission_control.ino)
+
+## Parts
+
+- Arduino Uno R3
+- DFPlayer Mini + microSD card + speaker
+- HW-179 8-digit display (MAX7219)
+- 16x2 I2C LCD (PCF8574 backpack)
+- 5 toggle switches, 1 momentary push button
+- ~1k resistor (DFPlayer RX line)
+
+## Libraries (Arduino Library Manager)
+
+- LiquidCrystal I2C (Frank de Brabander)
+- DFRobotDFPlayerMini
+
+The MAX7219 display is driven directly; no library needed.
+
+## Wiring
+
+| Part | Part pin | Arduino Uno R3 |
+|---|---|---|
+| Reset button | one side / other side | D2 / GND |
+| Switch 1-5 | one side / other side | D3, D4, D5, D6, D7 / GND |
+| DFPlayer Mini | RX | D9 (Arduino TX), through ~1k resistor |
+| | TX | D10 (Arduino RX) |
+| | VCC / GND | 5V / GND |
+| | SPK_1 / SPK_2 | speaker |
+| HW-179 (MAX7219) | CLK | D11 |
+| | DIN | D12 |
+| | CS | D13 |
+| | VCC / GND | 5V / GND |
+| LCD 16x2 I2C | SDA | SDA (same line as A4) |
+| | SCL | SCL (same line as A5) |
+| | VCC / GND | 5V / GND |
+
+Notes:
+
+- Switches and the reset button use the internal pull-ups (LOW = on/pressed), so no external resistors are needed.
+- LCD VCC goes to 5V, not AREF.
+- All grounds must be common.
+- Free pins: D8, A0-A2. A3 is read floating for `randomSeed`. Avoid D0/D1 (USB serial).
+- D13 also drives the onboard LED, which may flicker with display updates.
+
+## SD card tracks
+
+Files are named `0001.mp3`, `0002.mp3`, ... in the SD card root.
+
+| Trigger | Track(s) |
+|---|---|
+| Boot | 1 |
+| Switch 1 | 10 |
+| Switch 2 "Comms" | random of 2, 3, 4, 5, 7 |
+| Switch 3 "Navigation" | 6 or 8 |
+| Switch 4 "Mission Brief" | random of 12-16 |
+| Switch 5 "Spacewalk" | random of 17-19 |
+
+Switches are ignored for 2 seconds after boot so the boot track isn't cut off. Audio triggers when a switch is turned ON.
+
+## LCD
+
+Rotates every 5 seconds through:
+
+1. Distance to / Moon: 238,900mi
+2. Happy Birthday / Astronaut!
+3. Select a Mission
+
+If the screen is blank, adjust the contrast pot on the backpack, or change `LCD_ADDRESS` from `0x27` to `0x3F`.
+
+## Timer
+
+- Shown as `HH-MM-SS` on the HW-179.
+- `COUNT_DOWN = false` counts up from 0; set it to `true` to count down from `MISSION_SECONDS` (default 60 minutes).
+- The reset button on D2 restarts the timer.
