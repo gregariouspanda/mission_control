@@ -1,6 +1,6 @@
 # Mission Control
 
-Arduino Uno R3 sketch for a mission-control prop: five toggle switches that trigger audio, a mission timer on an 8-digit display, a rotating LCD message board, and a timer reset button.
+Arduino Uno R3 sketch for a mission-control prop: six toggle switches that trigger audio, a mission timer on an 8-digit display, a rotating LCD message board, and a timer reset button.
 
 Sketch: [`mission_control.ino`](mission_control.ino)
 
@@ -10,7 +10,7 @@ Sketch: [`mission_control.ino`](mission_control.ino)
 - DFPlayer Mini + microSD card + [speaker](https://www.amazon.com/dp/B0C6F9RGXF?ref=ppx_yo2ov_dt_b_fed_asin_title)
 - [HW-179 8-digit display (MAX7219)](https://www.amazon.com/dp/B01D0WSCJA?ref=ppx_yo2ov_dt_b_fed_asin_title)
 - [16x2 I2C LCD](https://www.amazon.com/dp/B019K5X53O?ref=ppx_yo2ov_dt_b_fed_asin_title)
-- [5 toggle switches](https://www.amazon.com/dp/B08MZRB4T1?ref=ppx_yo2ov_dt_b_fed_asin_title), 1 momentary push button
+- [6 toggle switches](https://www.amazon.com/dp/B08MZRB4T1?ref=ppx_yo2ov_dt_b_fed_asin_title), 1 momentary push button
 - ~1k resistor (DFPlayer RX line)
 - [6 x LED](https://www.amazon.com/dp/B0DHX6DD85?ref=ppx_yo2ov_dt_b_fed_asin_title) + resistors
 
@@ -26,7 +26,7 @@ The MAX7219 display is driven directly; no library needed.
 | Part | Part pin | Arduino Uno R3 |
 |---|---|---|
 | Reset button | one side / other side | D2 / GND |
-| Switch 1-5 | one side / other side | D3, D4, D5, D6, D7 / GND |
+| Switch 1-6 | one side / other side | D3, D4, D5, D6, D7, D8 / GND |
 | DFPlayer Mini | RX | D9 (Arduino TX), through ~1k resistor |
 | | TX | D10 (Arduino RX) |
 | | VCC / GND | 5V / GND |
@@ -59,6 +59,7 @@ Files are named `0001.mp3`, `0002.mp3`, ... in the SD card root.
 | Switch 3 "Navigation" | 6 or 8 |
 | Switch 4 "Mission Brief" | random of 12-16 |
 | Switch 5 "Spacewalk" | random of 17-19 |
+| Switch 6 | 9 (placeholder) |
 
 Switches are ignored for 2 seconds after boot so the boot track isn't cut off. Audio triggers when a switch is turned ON.
 

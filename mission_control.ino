@@ -7,7 +7,7 @@
   (The HW-179 / MAX7219 display is driven directly, no library needed.)
 
   Wiring:
-    Switches 1-5   -> D3..D7 to GND (internal pull-ups, LOW = switch ON)
+    Switches 1-6   -> D3..D8 to GND (internal pull-ups, LOW = switch ON)
     Reset button   -> D2 to GND (internal pull-up, LOW = pressed)
     HW-179 display -> DIN D12, CS D13, CLK D11, VCC 5V, GND GND
     DFPlayer Mini  -> Arduino D10 (RX) <- DFPlayer TX
@@ -21,6 +21,7 @@
     6, 8     Switch 3 "Navigation"   (one picked at random)
     12-16    Switch 4 "Mission Brief" (one picked at random)
     17-19    Switch 5 "Spacewalk"    (one picked at random)
+    9        Switch 6 (placeholder - set your own track)
 
   NOTE: pins match the tested DFPlayer and timer sketches; nothing overlaps.
   Change the pin constants below to match your PCB.
@@ -32,7 +33,7 @@
 #include <DFRobotDFPlayerMini.h>
 
 // ---------- Configuration ----------
-const uint8_t SWITCH_PINS[] = {3, 4, 5, 6, 7};
+const uint8_t SWITCH_PINS[] = {3, 4, 5, 6, 7, 8};
 const uint8_t NUM_SWITCHES  = sizeof(SWITCH_PINS) / sizeof(SWITCH_PINS[0]);
 
 const uint8_t RESET_PIN = 2;      // button to GND; restarts the mission timer
@@ -62,6 +63,18 @@ const Page LCD_PAGES[] = {
   { "Select a Mission", ""                },
 };
 const uint8_t NUM_PAGES = sizeof(LCD_PAGES) / sizeof(LCD_PAGES[0]);
+
+// ---------- Switch messages (shown when that switch is the most recent one toggled) ----------
+// Order = Switch 1..6. Edit the text to suit. Each line is max 16 characters.
+struct SwitchMsg { Page on; Page off; };
+const SwitchMsg SWITCH_MSGS[] = {
+  { { "Switch 1",     "ON"  }, { "Switch 1",     "OFF" } },
+  { { "Comms",        "ON"  }, { "Comms",        "OFF" } },
+  { { "Navigation",   "ON"  }, { "Navigation",   "OFF" } },
+  { { "Mission Brief","ON"  }, { "Mission Brief","OFF" } },
+  { { "Spacewalk",    "ON"  }, { "Spacewalk",    "OFF" } },
+  { { "Switch 6",     "ON"  }, { "Switch 6",     "OFF" } },
+};
 
 // ---------- Hardware objects ----------
 LiquidCrystal_I2C   lcd(LCD_ADDRESS, 16, 2);
@@ -200,12 +213,17 @@ void resetTimer() {
 }
 
 // ---------- Commands ----------
-// index is 0-4 (Switch 1-5); isOn is true when the switch is ON.
+// index is 0-5 (Switch 1-6); isOn is true when the switch is ON.
 // Track numbers refer to files on the SD card: 0001.mp3, 0002.mp3, ...
 void onSwitchChanged(uint8_t index, bool isOn) {
   Serial.print(F("Switch "));
   Serial.print(index + 1);
   Serial.println(isOn ? F(" ON") : F(" OFF"));
+
+  // The most recent toggle controls the LCD: stop the idle pages and show its message
+  lcdRotating = false;
+  const Page& msg = isOn ? SWITCH_MSGS[index].on : SWITCH_MSGS[index].off;
+  showMessage(msg.line1, msg.line2);
 
   if (!isOn) return;   // only trigger audio when a switch is turned ON
 
@@ -227,6 +245,9 @@ void onSwitchChanged(uint8_t index, bool isOn) {
       break;
     case 4:   // Switch 5 "Spacewalk": 17-19
       playTrack(random(17, 20));
+      break;
+    case 5:   // Switch 6: placeholder track
+      playTrack(9);
       break;
   }
 }
