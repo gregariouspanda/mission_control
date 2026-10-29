@@ -1,5 +1,8 @@
 /*
-  Mission Control – switches, mission timer, LCD, DFPlayer Mini
+  Mission Control (Arduino B) – mission timer, LCD, DFPlayer Mini
+
+  Receives the six switch states from the Switch Panel Arduino (see
+  switch_panel/switch_panel.ino) and produces the audio, LCD and display output.
 
   Libraries (Library Manager):
     - LiquidCrystal I2C  (Frank de Brabander)
@@ -7,7 +10,8 @@
   (The HW-179 / MAX7219 display is driven directly, no library needed.)
 
   Wiring:
-    Switches 1-6   -> D3..D8 to GND (internal pull-ups, LOW = switch ON)
+    Switch Panel   -> D0 (RX) <- Switch Panel Arduino D2 (TX), GND to GND
+                      (unplug this wire while uploading this sketch)
     Reset button   -> D2 to GND (internal pull-up, LOW = pressed)
     HW-179 display -> DIN D12, CS D13, CLK D11, VCC 5V, GND GND
     DFPlayer Mini  -> Arduino D10 (RX) <- DFPlayer TX
@@ -35,8 +39,7 @@
 // ---------- Configuration ----------
 #define ASTRONAUT_NAME "Astronaut"   // your astronaut's name, max 15 characters (shown on the LCD)
 
-const uint8_t SWITCH_PINS[] = {3, 4, 5, 6, 7, 8};
-const uint8_t NUM_SWITCHES  = sizeof(SWITCH_PINS) / sizeof(SWITCH_PINS[0]);
+const uint8_t NUM_SWITCHES = 6;
 
 const uint8_t RESET_PIN = 2;      // button to GND; restarts the mission timer
 
@@ -84,9 +87,10 @@ SoftwareSerial      playerSerial(DFPLAYER_RX, DFPLAYER_TX);
 DFRobotDFPlayerMini player;
 
 // ---------- State ----------
-bool          switchState[NUM_SWITCHES];      // true = ON (pin LOW)
-bool          lastReading[NUM_SWITCHES];
-unsigned long lastChangeMs[NUM_SWITCHES];
+bool          switchState[NUM_SWITCHES];      // true = ON (as reported by the Switch Panel)
+bool          haveBaseline = false;           // first message only sets the starting state
+char          rxBuf[NUM_SWITCHES + 3];
+uint8_t       rxLen = 0;
 
 unsigned long missionStartMs;
 unsigned long lastShownSeconds = 0xFFFFFFFF;
@@ -107,11 +111,6 @@ bool          lcdRotating = true;             // stops once the timer expires
 void setup() {
   Serial.begin(9600);
   randomSeed(analogRead(A3));
-
-  for (uint8_t i = 0; i < NUM_SWITCHES; i++) {
-    pinMode(SWITCH_PINS[i], INPUT_PULLUP);
-    switchState[i] = lastReading[i] = (digitalRead(SWITCH_PINS[i]) == LOW);
-  }
 
   pinMode(RESET_PIN, INPUT_PULLUP);
 
@@ -165,27 +164,40 @@ void setupPlayer() {
 void loop() {
   if (!inputsEnabled && millis() >= inputsEnableAtMs) inputsEnabled = true;
 
-  updateSwitches();
+  updateLink();
   updateResetButton();
   updateTimer();
   updateLcd();
 }
 
-// ---------- Switches ----------
-// Debounced; calls onSwitchChanged() once per toggle.
-void updateSwitches() {
-  unsigned long now = millis();
-  for (uint8_t i = 0; i < NUM_SWITCHES; i++) {
-    bool reading = (digitalRead(SWITCH_PINS[i]) == LOW);
-    if (reading != lastReading[i]) {
-      lastReading[i]  = reading;
-      lastChangeMs[i] = now;
+// ---------- Link from the Switch Panel ----------
+// Messages look like "S010001\n" ('1' = that switch is active). Calls
+// onSwitchChanged() once per change. The first message only sets the baseline.
+void updateLink() {
+  while (Serial.available()) {
+    char c = Serial.read();
+    if (c == '\r') continue;
+    if (c != '\n') {
+      if (rxLen < sizeof(rxBuf) - 1) rxBuf[rxLen++] = c;
+      continue;
     }
-    if (reading != switchState[i] && now - lastChangeMs[i] >= DEBOUNCE_MS) {
-      switchState[i] = reading;
-      if (inputsEnabled) onSwitchChanged(i, reading);
+    rxBuf[rxLen] = '\0';
+    if (rxLen == NUM_SWITCHES + 1 && rxBuf[0] == 'S') applyStates(rxBuf + 1);
+    rxLen = 0;
+  }
+}
+
+void applyStates(const char* states) {
+  for (uint8_t i = 0; i < NUM_SWITCHES; i++) {
+    bool on = (states[i] == '1');
+    if (haveBaseline && inputsEnabled && on != switchState[i]) {
+      switchState[i] = on;
+      onSwitchChanged(i, on);
+    } else {
+      switchState[i] = on;
     }
   }
+  haveBaseline = true;
 }
 
 // ---------- Reset button ----------

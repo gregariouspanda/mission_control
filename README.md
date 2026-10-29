@@ -1,8 +1,32 @@
 # Mission Control
 
-Arduino Uno R3 sketch for a mission-control prop: six toggle switches that trigger audio, a mission timer on an 8-digit display, a rotating LCD message board, and a timer reset button.
+Two Arduino Uno R3 boards for a mission-control prop:
 
-Sketch: [`mission_control.ino`](mission_control.ino)
+| Board | Sketch | Job |
+|---|---|---|
+| A: Switch Panel | [`switch_panel/switch_panel.ino`](switch_panel/switch_panel.ino) | Reads six on-on toggle switches, lights the six LEDs, and sends the switch states to board B |
+| B: Mission Control | [`mission_control.ino`](mission_control.ino) | Receives the switch states and drives the DFPlayer audio, LCD, 8-digit timer display and reset button |
+
+## Link between the boards
+
+| Board A (Switch Panel) | Board B (Mission Control) |
+|---|---|
+| D2 (TX) | D0 (RX) |
+| GND | GND |
+
+Unplug the D0 wire from board B while uploading its sketch. Board A sends a text line like `S010001` at 9600 baud, where each character is `1` when that switch is active (its pin pulled LOW). It sends on every change and repeats every 250 ms.
+
+## Board A (Switch Panel) wiring
+
+| Part | Arduino Uno R3 |
+|---|---|
+| Switch 1-6 | D3, D4, D5, D6, D7, D8 (active throw to GND) |
+| LED 1-6 | A0, A1, A2, A3, A4, A5 (through the PCB resistors) |
+| Link to board B | D2 |
+
+Each LED is powered from its Arduino pin and is on while its switch is active.
+
+## Board B (Mission Control) wiring
 
 ## Parts
 
@@ -26,7 +50,6 @@ The MAX7219 display is driven directly; no library needed.
 | Part | Part pin | Arduino Uno R3 |
 |---|---|---|
 | Reset button | one side / other side | D2 / GND |
-| Switch 1-6 | one side / other side | D3, D4, D5, D6, D7, D8 / GND |
 | DFPlayer Mini | RX | D9 (Arduino TX), through ~1k resistor |
 | | TX | D10 (Arduino RX) |
 | | VCC / GND | 5V / GND |
@@ -41,10 +64,10 @@ The MAX7219 display is driven directly; no library needed.
 
 Notes:
 
-- Switches and the reset button use the internal pull-ups (LOW = on/pressed), so no external resistors are needed.
+- The reset button uses the internal pull-up (LOW = pressed), so no external resistor is needed.
 - LCD VCC goes to 5V, not AREF.
 - All grounds must be common.
-- Free pins: D8, A0-A2. A3 is read floating for `randomSeed`. Avoid D0/D1 (USB serial).
+- Free pins: D3-D8, A0-A2. A3 is read floating for `randomSeed`. D0 is the link from board A.
 - D13 also drives the onboard LED, which may flicker with display updates.
 
 ## SD card tracks
