@@ -33,6 +33,8 @@
 #include <DFRobotDFPlayerMini.h>
 
 // ---------- Configuration ----------
+#define ASTRONAUT_NAME "Astronaut"   // your astronaut's name, max 15 characters (shown on the LCD)
+
 const uint8_t SWITCH_PINS[] = {3, 4, 5, 6, 7, 8};
 const uint8_t NUM_SWITCHES  = sizeof(SWITCH_PINS) / sizeof(SWITCH_PINS[0]);
 
@@ -59,7 +61,7 @@ const unsigned long LCD_ROTATE_MS   = 5000;            // seconds each LCD page 
 struct Page { const char* line1; const char* line2; };
 const Page LCD_PAGES[] = {
   { "Distance to",      "Moon: 238,900mi" },
-  { "Happy Birthday",   "Astronaut!"      },
+  { "Happy Birthday",   ASTRONAUT_NAME "!" },
   { "Select a Mission", ""                },
 };
 const uint8_t NUM_PAGES = sizeof(LCD_PAGES) / sizeof(LCD_PAGES[0]);

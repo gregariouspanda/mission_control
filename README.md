@@ -68,8 +68,10 @@ Switches are ignored for 2 seconds after boot so the boot track isn't cut off. A
 Rotates every 5 seconds through:
 
 1. Distance to / Moon: 238,900mi
-2. Happy Birthday / Astronaut!
+2. Happy Birthday / `<astronaut name>!`
 3. Select a Mission
+
+Set the name by editing `ASTRONAUT_NAME` in the Configuration section at the top of `mission_control.ino` (max 15 characters).
 
 If the screen is blank, adjust the contrast pot on the backpack, or change `LCD_ADDRESS` from `0x27` to `0x3F`.
 
