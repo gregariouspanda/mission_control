@@ -100,8 +100,9 @@ If the screen is blank, adjust the contrast pot on the backpack, or change `LCD_
 
 ## Timer
 
-- Shown as `HH-MM-SS` on the HW-179.
+- Shown as `HH.MM.SS.cc` on the HW-179 (`cc` = hundredths of a second).
 - `COUNT_DOWN = false` counts up from 0; set it to `true` to count down from `MISSION_SECONDS` (default 60 minutes).
+- `TEST_TIMER_ROTATION = true` runs a display test instead: it cycles through count-up, count-down and hour-rollover phases, 10 seconds each (edit `TEST_PHASES`). Set it to `false` for normal use.
 - The reset button on D2 restarts the timer.
 
 ## KiCad schematic

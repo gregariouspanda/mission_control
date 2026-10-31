@@ -53,6 +53,19 @@ const uint8_t LCD_ADDRESS = 0x27; // try 0x3F if the LCD stays blank
 
 const bool          COUNT_DOWN      = false;           // false = count up from 0
 const unsigned long MISSION_SECONDS = 60UL * 60UL;     // countdown start (max 99:59:59)
+
+// Test rotation: when true, the timer ignores COUNT_DOWN/MISSION_SECONDS and cycles through
+// the TEST_PHASES below, TEST_PHASE_MS each, so you can check the display. Set false for normal use.
+const bool          TEST_TIMER_ROTATION = true;
+const unsigned long TEST_PHASE_MS       = 10000;
+struct TestPhase { bool countDown; unsigned long startMs; };
+const TestPhase TEST_PHASES[] = {
+  { false, 0UL },                          // count up from 00.00.00.00
+  { true,  10000UL },                      // count down from 00.00.10.00 to zero
+  { false, 59UL * 60000UL + 55000UL },     // count up from 00.59.55.00 (tests minute/hour rollover)
+  { true,  3600000UL + 5000UL },           // count down from 01.00.05.00 (tests rollover downward)
+};
+const uint8_t NUM_TEST_PHASES = sizeof(TEST_PHASES) / sizeof(TEST_PHASES[0]);
 const uint8_t       DISPLAY_BRIGHT  = 8;               // 0-15
 const unsigned long DEBOUNCE_MS     = 30;
 const uint8_t       VOLUME          = 7;               // 0-30
@@ -93,7 +106,8 @@ char          rxBuf[NUM_SWITCHES + 3];
 uint8_t       rxLen = 0;
 
 unsigned long missionStartMs;
-unsigned long lastShownSeconds = 0xFFFFFFFF;
+unsigned long lastShownCs = 0xFFFFFFFF;   // last hundredth-of-a-second value drawn
+bool          timerExpiredFired = false;
 bool          playerReady = false;
 
 bool          lastResetReading = HIGH;
@@ -134,7 +148,7 @@ void setupTimerDisplay() {
   maxWrite(0x0B, 0x07);            // scan all 8 digits
   maxWrite(0x09, 0xFF);            // BCD decode on all digits
   maxWrite(0x0A, DISPLAY_BRIGHT);  // brightness
-  showTimer(COUNT_DOWN ? MISSION_SECONDS : 0);
+  showTimer(COUNT_DOWN ? MISSION_SECONDS * 1000UL : 0);
 }
 
 void setupLcd() {
@@ -218,7 +232,8 @@ void updateResetButton() {
 void resetTimer() {
   Serial.println(F("Timer reset"));
   missionStartMs   = millis();
-  lastShownSeconds = 0xFFFFFFFF;       // force the display to redraw
+  lastShownCs      = 0xFFFFFFFF;       // force the display to redraw
+  timerExpiredFired = false;
   if (!lcdRotating) {                  // leave the "EXPIRED" screen
     lcdRotating   = true;
     lcdLastSwapMs = millis();
@@ -302,35 +317,50 @@ void maxWrite(uint8_t reg, uint8_t value) {
   digitalWrite(MAX_CS, HIGH);
 }
 
-// Shows HH-MM-SS. Register 1 is the rightmost digit, 8 the leftmost.
-// In BCD decode mode: 0-9 = digit, 0x0A = dash, 0x0F = blank.
-void showTimer(unsigned long totalSeconds) {
-  uint8_t hh = (totalSeconds / 3600UL) % 100;
-  uint8_t mm = (totalSeconds / 60UL) % 60;
-  uint8_t ss = totalSeconds % 60;
+// Shows HH.MM.SS.cc (cc = hundredths of a second) from a time in milliseconds.
+// Register 1 is the rightmost digit, 8 the leftmost.
+// In BCD decode mode: 0-9 = digit; OR with 0x80 to light that digit's decimal point.
+void showTimer(unsigned long ms) {
+  uint8_t hh = (ms / 3600000UL) % 100;
+  uint8_t mm = (ms / 60000UL) % 60;
+  uint8_t ss = (ms / 1000UL) % 60;
+  uint8_t cs = (ms / 10UL) % 100;
 
   maxWrite(8, hh / 10);
-  maxWrite(7, hh % 10);
-  maxWrite(6, 0x0A);
-  maxWrite(5, mm / 10);
-  maxWrite(4, mm % 10);
-  maxWrite(3, 0x0A);
-  maxWrite(2, ss / 10);
-  maxWrite(1, ss % 10);
+  maxWrite(7, (hh % 10) | 0x80);
+  maxWrite(6, mm / 10);
+  maxWrite(5, (mm % 10) | 0x80);
+  maxWrite(4, ss / 10);
+  maxWrite(3, (ss % 10) | 0x80);
+  maxWrite(2, cs / 10);
+  maxWrite(1, cs % 10);
 }
 
 // ---------- Mission timer ----------
 void updateTimer() {
-  unsigned long elapsed = (millis() - missionStartMs) / 1000UL;
+  unsigned long elapsed = millis() - missionStartMs;
   unsigned long shown;
 
-  if (COUNT_DOWN) shown = (elapsed >= MISSION_SECONDS) ? 0 : MISSION_SECONDS - elapsed;
-  else            shown = elapsed;
+  if (TEST_TIMER_ROTATION) {
+    unsigned long inCycle = elapsed % (TEST_PHASE_MS * NUM_TEST_PHASES);
+    const TestPhase& ph   = TEST_PHASES[inCycle / TEST_PHASE_MS];
+    unsigned long t       = inCycle % TEST_PHASE_MS;
+    if (ph.countDown) shown = (ph.startMs > t) ? ph.startMs - t : 0;
+    else              shown = ph.startMs + t;
+  } else if (COUNT_DOWN) {
+    unsigned long total = MISSION_SECONDS * 1000UL;
+    shown = (elapsed >= total) ? 0 : total - elapsed;
+  } else {
+    shown = elapsed;
+  }
 
-  if (shown != lastShownSeconds) {
-    lastShownSeconds = shown;
+  if (shown / 10UL != lastShownCs) {        // redraw only when the hundredths change
+    lastShownCs = shown / 10UL;
     showTimer(shown);
-    if (COUNT_DOWN && shown == 0) onTimerExpired();
+    if (!TEST_TIMER_ROTATION && COUNT_DOWN && shown == 0 && !timerExpiredFired) {
+      timerExpiredFired = true;
+      onTimerExpired();
+    }
   }
 }
 
