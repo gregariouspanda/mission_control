@@ -143,12 +143,19 @@ void setupTimerDisplay() {
   pinMode(MAX_CLK, OUTPUT);
   digitalWrite(MAX_CS, HIGH);
 
+  delay(100);                      // let the MAX7219 finish powering up
+  maxInit();
+  showTimer(COUNT_DOWN ? MISSION_SECONDS * 1000UL : 0);
+}
+
+// Sends the MAX7219 configuration. Called at startup and again every second, so the
+// display recovers if the chip missed the first commands (e.g. it powered up late).
+void maxInit() {
   maxWrite(0x0F, 0x00);            // display test off
   maxWrite(0x0C, 0x01);            // normal operation (not shutdown)
   maxWrite(0x0B, 0x07);            // scan all 8 digits
   maxWrite(0x09, 0xFF);            // BCD decode on all digits
   maxWrite(0x0A, DISPLAY_BRIGHT);  // brightness
-  showTimer(COUNT_DOWN ? MISSION_SECONDS * 1000UL : 0);
 }
 
 void setupLcd() {
@@ -352,6 +359,13 @@ void updateTimer() {
     shown = (elapsed >= total) ? 0 : total - elapsed;
   } else {
     shown = elapsed;
+  }
+
+  static unsigned long lastInitMs = 0;
+  if (millis() - lastInitMs >= 1000) {      // re-send the display setup once a second
+    lastInitMs = millis();
+    maxInit();
+    lastShownCs = 0xFFFFFFFF;               // force a redraw
   }
 
   if (shown / 10UL != lastShownCs) {        // redraw only when the hundredths change
