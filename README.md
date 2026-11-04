@@ -4,8 +4,8 @@ Two Arduino Uno R3 boards for a mission-control prop:
 
 | Board | Sketch | Job |
 |---|---|---|
-| A: Switch Panel | [`switch_panel/switch_panel.ino`](switch_panel/switch_panel.ino) | Reads six on-on toggle switches, lights the six LEDs, and sends the switch states to board B |
-| B: Mission Control | [`mission_control.ino`](mission_control.ino) | Receives the switch states and drives the DFPlayer audio, LCD, 8-digit timer display and reset button |
+| A: Switch Panel | [`switch_panel/switch_panel.ino`](switch_panel/switch_panel.ino) | Reads six on-on toggle switches, lights the six LEDs, plays the DFPlayer audio for each switch position, and sends the switch states to board B |
+| B: Mission Control | [`mission_control.ino`](mission_control.ino) | Receives the switch states and drives the LCD (message follows the switch position), 8-digit timer display and reset button |
 
 ## Link between the boards
 
@@ -22,9 +22,13 @@ Unplug the D0 wire from board B while uploading its sketch. Board A sends a text
 |---|---|
 | Switch 1-6 | D3, D4, D5, D6, D7, D8 (active throw to GND) |
 | LED 1-6 | A0, A1, A2, A3, A4, A5 (through the PCB resistors) |
+| DFPlayer Mini TX -> Arduino | D10 (Arduino RX) |
+| Arduino -> DFPlayer RX | D9 (Arduino TX), through ~1k resistor |
+| DFPlayer VCC / GND | 5V / GND |
+| DFPlayer SPK_1 / SPK_2 | speaker |
 | Link to board B | D2 |
 
-Each LED is powered from its Arduino pin and is on while its switch is active.
+Each LED is powered from its Arduino pin and is on while its switch is active. Moving a switch to a position plays that position's track (see SD card tracks below).
 
 ## Board B (Mission Control) wiring
 
@@ -50,10 +54,6 @@ The MAX7219 display is driven directly; no library needed.
 | Part | Part pin | Arduino Uno R3 |
 |---|---|---|
 | Reset button | one side / other side | D2 / GND |
-| DFPlayer Mini | RX | D9 (Arduino TX), through ~1k resistor |
-| | TX | D10 (Arduino RX) |
-| | VCC / GND | 5V / GND |
-| | SPK_1 / SPK_2 | speaker |
 | HW-179 (MAX7219) | CLK | D11 |
 | | DIN | D12 |
 | | CS | D13 |
@@ -67,12 +67,12 @@ Notes:
 - The reset button uses the internal pull-up (LOW = pressed), so no external resistor is needed.
 - LCD VCC goes to 5V, not AREF.
 - All grounds must be common.
-- Free pins: D3-D8, A0-A2. A3 is read floating for `randomSeed`. D0 is the link from board A.
+- Free pins on board B: D3-D10, A0-A3. D0 is the link from board A.
 - D13 also drives the onboard LED, which may flicker with display updates.
 
 ## SD card tracks
 
-Files are named `0001.mp3`, `0002.mp3`, ... in the SD card root.
+Files are named `0001.mp3`, `0002.mp3`, ... in the SD card root of the DFPlayer on board A.
 
 | Trigger | Track(s) |
 |---|---|
@@ -84,7 +84,7 @@ Files are named `0001.mp3`, `0002.mp3`, ... in the SD card root.
 | Switch 5 "Spacewalk" | random of 17-19 |
 | Switch 6 | 9 (placeholder) |
 
-Switches are ignored for 2 seconds after boot so the boot track isn't cut off. Audio triggers when a switch is turned ON.
+Switches are ignored for 2 seconds after boot so the boot track isn't cut off. Audio plays when a switch moves to its ON position. To play a track for the OFF position too, set that switch's entry in `OFF_TRACKS` in `switch_panel.ino` (0 = no audio).
 
 ## LCD
 
@@ -93,6 +93,8 @@ Rotates every 5 seconds through:
 1. Distance to / Moon: 238,900mi
 2. Happy Birthday / `<astronaut name>!`
 3. Select a Mission
+
+When a switch moves, the idle pages stop and the LCD shows that switch's message for its new position (ON or OFF), from `SWITCH_MSGS` in `mission_control.ino`. The most recent toggle controls the LCD. Pressing the reset button returns to the idle pages.
 
 Set the name by editing `ASTRONAUT_NAME` in the Configuration section at the top of `mission_control.ino` (max 15 characters).
 

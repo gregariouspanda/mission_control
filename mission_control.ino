@@ -1,12 +1,11 @@
 /*
-  Mission Control (Arduino B) – mission timer, LCD, DFPlayer Mini
+  Mission Control (Arduino B) – mission timer, LCD and 8-digit display
 
   Receives the six switch states from the Switch Panel Arduino (see
-  switch_panel/switch_panel.ino) and produces the audio, LCD and display output.
+  switch_panel/switch_panel.ino) and drives the LCD and display. The DFPlayer Mini audio now lives on the Switch Panel.
 
   Libraries (Library Manager):
     - LiquidCrystal I2C  (Frank de Brabander)
-    - DFRobotDFPlayerMini
   (The HW-179 / MAX7219 display is driven directly, no library needed.)
 
   Wiring:
@@ -14,27 +13,16 @@
                       (unplug this wire while uploading this sketch)
     Reset button   -> D2 to GND (internal pull-up, LOW = pressed)
     HW-179 display -> DIN D12, CS D13, CLK D11, VCC 5V, GND GND
-    DFPlayer Mini  -> Arduino D10 (RX) <- DFPlayer TX
-                      Arduino D9 (TX) -> DFPlayer RX (through ~1k resistor)
     LCD 16x2 I2C   -> SDA A4, SCL A5, VCC 5V, GND GND
 
-  SD card tracks (0001.mp3, 0002.mp3, ...):
-    1        boot track, plays at power-up
-    10       Switch 1
-    2-5, 7   Switch 2 "Comms"        (one picked at random)
-    6, 8     Switch 3 "Navigation"   (one picked at random)
-    12-16    Switch 4 "Mission Brief" (one picked at random)
-    17-19    Switch 5 "Spacewalk"    (one picked at random)
-    9        Switch 6 (placeholder - set your own track)
+  LCD message follows the most recently toggled switch and its position (ON or OFF).
 
-  NOTE: pins match the tested DFPlayer and timer sketches; nothing overlaps.
+  NOTE: D9 and D10 are free on this board now that the DFPlayer moved to the Switch Panel.
   Change the pin constants below to match your PCB.
 */
 
-#include <SoftwareSerial.h>
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
-#include <DFRobotDFPlayerMini.h>
 
 // ---------- Configuration ----------
 #define ASTRONAUT_NAME "Astronaut"   // your astronaut's name, max 15 characters (shown on the LCD)
@@ -47,8 +35,6 @@ const uint8_t MAX_DIN = 12;
 const uint8_t MAX_CS  = 13;
 const uint8_t MAX_CLK = 11;
 
-const uint8_t DFPLAYER_RX = 10;   // Arduino receives on this pin
-const uint8_t DFPLAYER_TX = 9;    // Arduino transmits on this pin
 const uint8_t LCD_ADDRESS = 0x27; // try 0x3F if the LCD stays blank
 
 const bool          COUNT_DOWN      = false;           // false = count up from 0
@@ -68,9 +54,7 @@ const TestPhase TEST_PHASES[] = {
 const uint8_t NUM_TEST_PHASES = sizeof(TEST_PHASES) / sizeof(TEST_PHASES[0]);
 const uint8_t       DISPLAY_BRIGHT  = 8;               // 0-15
 const unsigned long DEBOUNCE_MS     = 30;
-const uint8_t       VOLUME          = 7;               // 0-30
-const uint16_t      BOOT_TRACK      = 1;
-const unsigned long BOOT_GRACE_MS   = 2000;            // ignore switches while boot track plays
+const unsigned long BOOT_GRACE_MS   = 2000;            // ignore switch changes right after power-up
 const unsigned long LCD_ROTATE_MS   = 5000;            // seconds each LCD page stays up
 
 // ---------- LCD pages (rotate every LCD_ROTATE_MS) ----------
@@ -96,8 +80,6 @@ const SwitchMsg SWITCH_MSGS[] = {
 
 // ---------- Hardware objects ----------
 LiquidCrystal_I2C   lcd(LCD_ADDRESS, 16, 2);
-SoftwareSerial      playerSerial(DFPLAYER_RX, DFPLAYER_TX);
-DFRobotDFPlayerMini player;
 
 // ---------- State ----------
 bool          switchState[NUM_SWITCHES];      // true = ON (as reported by the Switch Panel)
@@ -108,7 +90,6 @@ uint8_t       rxLen = 0;
 unsigned long missionStartMs;
 unsigned long lastShownCs = 0xFFFFFFFF;   // last hundredth-of-a-second value drawn
 bool          timerExpiredFired = false;
-bool          playerReady = false;
 
 bool          lastResetReading = HIGH;
 bool          resetState       = HIGH;
@@ -124,24 +105,21 @@ bool          lcdRotating = true;             // stops once the timer expires
 // ---------- Setup ----------
 void setup() {
   Serial.begin(9600);
-  randomSeed(analogRead(A3));
 
   pinMode(RESET_PIN, INPUT_PULLUP);
 
   setupTimerDisplay();
   setupLcd();
-  setupPlayer();
 
-  playTrack(BOOT_TRACK);
   inputsEnableAtMs = millis() + BOOT_GRACE_MS;
   missionStartMs = millis();
 }
 
 void setupTimerDisplay() {
-  pinMode(MAX_DIN, OUTPUT);
+  digitalWrite(MAX_CS, HIGH);      // pull-up first, so CS never glitches low at startup
   pinMode(MAX_CS,  OUTPUT);
+  pinMode(MAX_DIN, OUTPUT);
   pinMode(MAX_CLK, OUTPUT);
-  digitalWrite(MAX_CS, HIGH);
 
   delay(100);                      // let the MAX7219 finish powering up
   maxInit();
@@ -163,22 +141,6 @@ void setupLcd() {
   lcd.backlight();
   showPage(lcdPage);
   lcdLastSwapMs = millis();
-}
-
-void setupPlayer() {
-  playerSerial.begin(9600);
-  delay(300);
-  // ACK off + reset on, with a settle delay (matches the tested DFPlayer sketch)
-  playerReady = player.begin(playerSerial, /*isACK=*/false, /*doReset=*/true);
-  if (playerReady) {
-    player.setTimeOut(500);
-    player.EQ(DFPLAYER_EQ_NORMAL);
-    player.outputDevice(DFPLAYER_DEVICE_SD);
-    player.volume(VOLUME);
-    delay(1200);
-  } else {
-    Serial.println(F("DFPlayer not found - check wiring/SD card"));
-  }
 }
 
 // ---------- Main loop ----------
@@ -250,7 +212,7 @@ void resetTimer() {
 
 // ---------- Commands ----------
 // index is 0-5 (Switch 1-6); isOn is true when the switch is ON.
-// Track numbers refer to files on the SD card: 0001.mp3, 0002.mp3, ...
+// Audio for each position is played by the Switch Panel board.
 void onSwitchChanged(uint8_t index, bool isOn) {
   Serial.print(F("Switch "));
   Serial.print(index + 1);
@@ -260,32 +222,6 @@ void onSwitchChanged(uint8_t index, bool isOn) {
   lcdRotating = false;
   const Page& msg = isOn ? SWITCH_MSGS[index].on : SWITCH_MSGS[index].off;
   showMessage(msg.line1, msg.line2);
-
-  if (!isOn) return;   // only trigger audio when a switch is turned ON
-
-  switch (index) {
-    case 0:   // Switch 1
-      playTrack(10);
-      break;
-    case 1: { // Switch 2 "Comms": random 2-5 or 7 (skips 6)
-      uint16_t t = random(2, 7);      // 2..6
-      if (t == 6) t = 7;
-      playTrack(t);
-      break;
-    }
-    case 2:   // Switch 3 "Navigation": 6 or 8
-      playTrack(random(0, 2) == 0 ? 6 : 8);
-      break;
-    case 3:   // Switch 4 "Mission Brief": 12-16
-      playTrack(random(12, 17));
-      break;
-    case 4:   // Switch 5 "Spacewalk": 17-19
-      playTrack(random(17, 20));
-      break;
-    case 5:   // Switch 6: placeholder track
-      playTrack(9);
-      break;
-  }
 }
 
 // ---------- LCD ----------
@@ -309,11 +245,6 @@ void updateLcd() {
     lcdPage = (lcdPage + 1) % NUM_PAGES;
     showPage(lcdPage);
   }
-}
-
-// ---------- Audio ----------
-void playTrack(uint16_t track) {
-  if (playerReady) player.play(track);
 }
 
 // ---------- MAX7219 (HW-179) ----------
@@ -381,5 +312,4 @@ void updateTimer() {
 void onTimerExpired() {
   lcdRotating = false;
   showMessage("MISSION TIME", "EXPIRED");
-  // playTrack(99);
 }

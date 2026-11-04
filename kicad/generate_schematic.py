@@ -20,9 +20,9 @@ def uid():
 # ---------- Symbol definitions: name -> (ref prefix, half-width units, left pins, right pins)
 SYMBOLS = {
     "ARDUINO_A": ("U", 5, ["D3", "D4", "D5", "D6", "D7", "D8", "D2"],
-                  ["A0", "A1", "A2", "A3", "A4", "A5", "5V", "GND"]),
+                  ["A0", "A1", "A2", "A3", "A4", "A5", "D9", "D10", "5V", "GND"]),
     "ARDUINO_B": ("U", 5, ["D0_RX", "D2", "5V", "GND"],
-                  ["D9", "D10", "D11", "D12", "D13", "A4_SDA", "A5_SCL"]),
+                  ["D11", "D12", "D13", "A4_SDA", "A5_SCL"]),
     "SW_SPDT":   ("SW", 3, ["COM"], ["ACTIVE", "NC"]),
     "SW_PUSH":   ("SW", 2, ["1"], ["2"]),
     "R":         ("R", 2, ["1"], ["2"]),
@@ -80,27 +80,27 @@ PARTS.append(("U1", "ARDUINO_A", "Arduino Uno A - Switch Panel", 36, 40, {
     "D3": "SW1_IN", "D4": "SW2_IN", "D5": "SW3_IN", "D6": "SW4_IN", "D7": "SW5_IN", "D8": "SW6_IN",
     "D2": "LINK",
     "A0": "LED1_DRV", "A1": "LED2_DRV", "A2": "LED3_DRV", "A3": "LED4_DRV", "A4": "LED5_DRV",
-    "A5": "LED6_DRV", "5V": "+5V", "GND": "GND"}))
+    "A5": "LED6_DRV", "D9": "DFP_TX_SER", "D10": "DFP_RX_SER", "5V": "+5V", "GND": "GND"}))
 
 PARTS += [
     ("U2", "ARDUINO_B", "Arduino Uno B - Mission Control", 112, 40, {
         "D0_RX": "LINK", "D2": "RESET_BTN", "5V": "+5V", "GND": "GND",
-        "D9": "DFP_TX_SER", "D10": "DFP_RX_SER", "D11": "MAX_CLK", "D12": "MAX_DIN", "D13": "MAX_CS",
+        "D11": "MAX_CLK", "D12": "MAX_DIN", "D13": "MAX_CS",
         "A4_SDA": "SDA", "A5_SCL": "SCL"}),
     ("SW7", "SW_PUSH", "Reset (push button)", 92, 36, {"1": "RESET_BTN", "2": "GND"}),
-    ("R7", "R", "1k", 134, 18, {"1": "DFP_TX_SER", "2": "DFP_RX"}),
-    ("U3", "DFPLAYER", "DFPlayer Mini", 152, 24, {
+    ("R7", "R", "1k", 58, 86, {"1": "DFP_TX_SER", "2": "DFP_RX"}),
+    ("U3", "DFPLAYER", "DFPlayer Mini", 84, 90, {
         "VCC": "+5V", "RX": "DFP_RX", "TX": "DFP_RX_SER", "GND": "GND", "SPK1": "SPK1", "SPK2": "SPK2"}),
-    ("LS1", "SPEAKER", "Speaker", 152, 38, {"+": "SPK1", "-": "SPK2"}),
+    ("LS1", "SPEAKER", "Speaker", 84, 104, {"+": "SPK1", "-": "SPK2"}),
     ("DS1", "LCD_I2C", "LCD 16x2 I2C", 152, 50, {"GND": "GND", "VCC": "+5V", "SDA": "SDA", "SCL": "SCL"}),
     ("DS2", "HW179", "HW-179 (MAX7219)", 152, 70, {
         "VCC": "+5V", "GND": "GND", "DIN": "MAX_DIN", "CS": "MAX_CS", "CLK": "MAX_CLK"}),
 ]
 
 NOTES = [
-    (8, 6, "Board A - Switch Panel: on-on switches pull their pin LOW; matching LED lights; states sent on LINK"),
-    (92, 6, "Board B - Mission Control: receives LINK on D0 (unplug while uploading), drives audio, LCD, display"),
-    (8, 100, "Share GND between both Arduinos and all modules. Power both boards and all modules from 5V."),
+    (8, 6, "Board A - Switch Panel: switches pull their pin LOW; LED lights; DFPlayer plays the position track; states sent on LINK"),
+    (92, 6, "Board B - Mission Control: receives LINK on D0 (unplug while uploading), drives LCD and display"),
+    (8, 112, "Share GND between both Arduinos and all modules. Power both boards and all modules from 5V."),
 ]
 
 root = uid()
