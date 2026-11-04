@@ -16,6 +16,35 @@ Two Arduino Uno R3 boards for a mission-control prop:
 
 Unplug the D0 wire from board B while uploading its sketch. Board A sends a text line like `S010001` at 9600 baud, where each character is `1` when that switch is active (its pin pulled LOW). It sends on every change and repeats every 250 ms.
 
+## Pin chart
+
+| Uno pin | Board A: Switch Panel | Board B: Mission Control |
+|---|---|---|
+| D0 (RX) | USB serial, keep free | Link from board A D2 (unplug while uploading) |
+| D1 (TX) | USB serial, keep free | USB serial, keep free |
+| D2 | Link TX to board B D0 | Reset button (to GND) |
+| D3 | Switch 1 | free |
+| D4 | Switch 2 | free |
+| D5 | Switch 3 | free |
+| D6 | Switch 4 | free |
+| D7 | Switch 5 | free |
+| D8 | Switch 6 | free |
+| D9 | DFPlayer RX (through ~1k) | free |
+| D10 | DFPlayer TX | free |
+| D11 | unused (dummy link RX in code) | HW-179 CLK |
+| D12 | free | HW-179 DIN |
+| D13 | free | HW-179 CS (onboard LED flickers) |
+| A0 | LED 1 | free |
+| A1 | LED 2 | free |
+| A2 | LED 3 | free |
+| A3 | LED 4 | free |
+| A4 | LED 5 | LCD SDA |
+| A5 | LED 6 | LCD SCL |
+| 5V | DFPlayer VCC | HW-179 VCC, LCD VCC |
+| GND | DFPlayer GND, link GND | HW-179 GND, LCD GND, link GND, reset button |
+
+Switches are active LOW (`INPUT_PULLUP`). All grounds must be common, including between the two boards.
+
 ## Board A (Switch Panel) wiring
 
 | Part | Arduino Uno R3 |
@@ -29,8 +58,6 @@ Unplug the D0 wire from board B while uploading its sketch. Board A sends a text
 | Link to board B | D2 |
 
 Each LED is powered from its Arduino pin and is on while its switch is active. Moving a switch to a position plays that position's track (see SD card tracks below).
-
-## Board B (Mission Control) wiring
 
 ## Parts
 
@@ -49,7 +76,7 @@ Each LED is powered from its Arduino pin and is on while its switch is active. M
 
 The MAX7219 display is driven directly; no library needed.
 
-## Wiring
+## Board B (Mission Control) wiring
 
 | Part | Part pin | Arduino Uno R3 |
 |---|---|---|
