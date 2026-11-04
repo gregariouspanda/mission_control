@@ -21,7 +21,7 @@ def uid():
 SYMBOLS = {
     "ARDUINO_A": ("U", 5, ["D3", "D4", "D5", "D6", "D7", "D8", "D2"],
                   ["A0", "A1", "A2", "A3", "A4", "A5", "D9", "D10", "5V", "GND"]),
-    "ARDUINO_B": ("U", 5, ["D0_RX", "D2", "5V", "GND"],
+    "ARDUINO_B": ("U", 5, ["D0_RX", "5V", "GND"],
                   ["D11", "D12", "D13", "A4_SDA", "A5_SCL"]),
     "SW_SPDT":   ("SW", 3, ["COM"], ["ACTIVE", "NC"]),
     "SW_PUSH":   ("SW", 2, ["1"], ["2"]),
@@ -84,10 +84,9 @@ PARTS.append(("U1", "ARDUINO_A", "Arduino Uno A - Switch Panel", 36, 40, {
 
 PARTS += [
     ("U2", "ARDUINO_B", "Arduino Uno B - Mission Control", 112, 40, {
-        "D0_RX": "LINK", "D2": "RESET_BTN", "5V": "+5V", "GND": "GND",
+        "D0_RX": "LINK", "5V": "+5V", "GND": "GND",
         "D11": "MAX_CLK", "D12": "MAX_DIN", "D13": "MAX_CS",
         "A4_SDA": "SDA", "A5_SCL": "SCL"}),
-    ("SW7", "SW_PUSH", "Reset (push button)", 92, 36, {"1": "RESET_BTN", "2": "GND"}),
     ("R7", "R", "1k", 58, 86, {"1": "DFP_TX_SER", "2": "DFP_RX"}),
     ("U3", "DFPLAYER", "DFPlayer Mini", 84, 90, {
         "VCC": "+5V", "RX": "DFP_RX", "TX": "DFP_RX_SER", "GND": "GND", "SPK1": "SPK1", "SPK2": "SPK2"}),

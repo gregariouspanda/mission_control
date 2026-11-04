@@ -5,7 +5,7 @@ Two Arduino Uno R3 boards for a mission-control prop:
 | Board | Sketch | Job |
 |---|---|---|
 | A: Switch Panel | [`switch_panel/switch_panel.ino`](switch_panel/switch_panel.ino) | Reads six on-on toggle switches, lights the six LEDs, plays the DFPlayer audio for each switch position, and sends the switch states to board B |
-| B: Mission Control | [`mission_control.ino`](mission_control.ino) | Receives the switch states and drives the LCD (message follows the switch position), 8-digit timer display and reset button |
+| B: Mission Control | [`mission_control.ino`](mission_control.ino) | Receives the switch states and drives the LCD (message follows the switch position), and 8-digit timer display |
 
 ## Link between the boards
 
@@ -22,7 +22,7 @@ Unplug the D0 wire from board B while uploading its sketch. Board A sends a text
 |---|---|---|
 | D0 (RX) | USB serial, keep free | Link from board A D2 (unplug while uploading) |
 | D1 (TX) | USB serial, keep free | USB serial, keep free |
-| D2 | Link TX to board B D0 | Reset button (to GND) |
+| D2 | Link TX to board B D0 | free |
 | D3 | Switch 1 | free |
 | D4 | Switch 2 | free |
 | D5 | Switch 3 | free |
@@ -41,7 +41,7 @@ Unplug the D0 wire from board B while uploading its sketch. Board A sends a text
 | A4 | LED 5 | LCD SDA |
 | A5 | LED 6 | LCD SCL |
 | 5V | DFPlayer VCC | HW-179 VCC, LCD VCC |
-| GND | DFPlayer GND, link GND | HW-179 GND, LCD GND, link GND, reset button |
+| GND | DFPlayer GND, link GND | HW-179 GND, LCD GND, link GND |
 
 Switches are active LOW (`INPUT_PULLUP`). All grounds must be common, including between the two boards.
 
@@ -80,7 +80,6 @@ The MAX7219 display is driven directly; no library needed.
 
 | Part | Part pin | Arduino Uno R3 |
 |---|---|---|
-| Reset button | one side / other side | D2 / GND |
 | HW-179 (MAX7219) | CLK | D11 |
 | | DIN | D12 |
 | | CS | D13 |
@@ -91,10 +90,9 @@ The MAX7219 display is driven directly; no library needed.
 
 Notes:
 
-- The reset button uses the internal pull-up (LOW = pressed), so no external resistor is needed.
 - LCD VCC goes to 5V, not AREF.
 - All grounds must be common.
-- Free pins on board B: D3-D10, A0-A3. D0 is the link from board A.
+- Free pins on board B: D2-D10, A0-A3. D0 is the link from board A.
 - D13 also drives the onboard LED, which may flicker with display updates.
 
 ## SD card tracks
@@ -121,7 +119,7 @@ Rotates every 5 seconds through:
 2. Happy Birthday / `<astronaut name>!`
 3. Select a Mission
 
-When a switch moves, the idle pages stop and the LCD shows that switch's message for its new position (ON or OFF), from `SWITCH_MSGS` in `mission_control.ino`. The most recent toggle controls the LCD. Pressing the reset button returns to the idle pages.
+When a switch moves, the idle pages stop and the LCD shows that switch's message for its new position (ON or OFF), from `SWITCH_MSGS` in `mission_control.ino`. The most recent toggle controls the LCD.
 
 Set the name by editing `ASTRONAUT_NAME` in the Configuration section at the top of `mission_control.ino` (max 15 characters).
 
@@ -132,7 +130,7 @@ If the screen is blank, adjust the contrast pot on the backpack, or change `LCD_
 - Shown as `HH.MM.SS.cc` on the HW-179 (`cc` = hundredths of a second).
 - `COUNT_DOWN = false` counts up from 0; set it to `true` to count down from `MISSION_SECONDS` (default 60 minutes).
 - `TEST_TIMER_ROTATION = true` runs a display test instead: it cycles through count-up, count-down and hour-rollover phases, 10 seconds each (edit `TEST_PHASES`). Set it to `false` for normal use.
-- The reset button on D2 restarts the timer.
+- The timer restarts when board B is reset or powered on. There is no reset button for now.
 
 ## KiCad schematic
 

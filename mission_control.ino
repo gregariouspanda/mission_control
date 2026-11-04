@@ -11,7 +11,6 @@
   Wiring:
     Switch Panel   -> D0 (RX) <- Switch Panel Arduino D2 (TX), GND to GND
                       (unplug this wire while uploading this sketch)
-    Reset button   -> D2 to GND (internal pull-up, LOW = pressed)
     HW-179 display -> DIN D12, CS D13, CLK D11, VCC 5V, GND GND
     LCD 16x2 I2C   -> SDA A4, SCL A5, VCC 5V, GND GND
 
@@ -29,7 +28,6 @@
 
 const uint8_t NUM_SWITCHES = 6;
 
-const uint8_t RESET_PIN = 2;      // button to GND; restarts the mission timer
 
 const uint8_t MAX_DIN = 12;
 const uint8_t MAX_CS  = 13;
@@ -91,10 +89,6 @@ unsigned long missionStartMs;
 unsigned long lastShownCs = 0xFFFFFFFF;   // last hundredth-of-a-second value drawn
 bool          timerExpiredFired = false;
 
-bool          lastResetReading = HIGH;
-bool          resetState       = HIGH;
-unsigned long lastResetChangeMs = 0;
-
 unsigned long inputsEnableAtMs;
 bool          inputsEnabled = false;
 
@@ -105,8 +99,6 @@ bool          lcdRotating = true;             // stops once the timer expires
 // ---------- Setup ----------
 void setup() {
   Serial.begin(9600);
-
-  pinMode(RESET_PIN, INPUT_PULLUP);
 
   setupTimerDisplay();
   setupLcd();
@@ -148,7 +140,6 @@ void loop() {
   if (!inputsEnabled && millis() >= inputsEnableAtMs) inputsEnabled = true;
 
   updateLink();
-  updateResetButton();
   updateTimer();
   updateLcd();
 }
@@ -181,33 +172,6 @@ void applyStates(const char* states) {
     }
   }
   haveBaseline = true;
-}
-
-// ---------- Reset button ----------
-// Debounced; a press restarts the timer from 00-00-00 (or the countdown start).
-void updateResetButton() {
-  unsigned long now = millis();
-  bool reading = digitalRead(RESET_PIN);
-  if (reading != lastResetReading) {
-    lastResetReading  = reading;
-    lastResetChangeMs = now;
-  }
-  if (reading != resetState && now - lastResetChangeMs >= DEBOUNCE_MS) {
-    resetState = reading;
-    if (resetState == LOW) resetTimer();
-  }
-}
-
-void resetTimer() {
-  Serial.println(F("Timer reset"));
-  missionStartMs   = millis();
-  lastShownCs      = 0xFFFFFFFF;       // force the display to redraw
-  timerExpiredFired = false;
-  if (!lcdRotating) {                  // leave the "EXPIRED" screen
-    lcdRotating   = true;
-    lcdLastSwapMs = millis();
-    showPage(lcdPage);
-  }
 }
 
 // ---------- Commands ----------
