@@ -109,7 +109,7 @@ Files are named `0001.mp3`, `0002.mp3`, ... in the SD card root of the DFPlayer 
 | Switch 5 "Spacewalk" | random of 17-19 |
 | Switch 6 | 9 (placeholder) |
 
-Switches are ignored for 2 seconds after boot so the boot track isn't cut off. Audio plays when a switch moves to its ON position. To play a track for the OFF position too, set that switch's entry in `OFF_TRACKS` in `switch_panel.ino` (0 = no audio).
+Switches are ignored for 2 seconds after boot so the boot track isn't cut off. Audio plays when a switch moves to its ON position. When a switch moves from ON to OFF it starts a new record: a random track from `FIRST_TRACK` to `LAST_TRACK` (2 to 19) that is never the one just played. To use a fixed track for a switch's OFF position instead, set its entry in `OFF_TRACKS` in `switch_panel.ino` (0 = random).
 
 ## LCD
 
@@ -119,7 +119,7 @@ Rotates every 5 seconds through:
 2. Happy Birthday / `<astronaut name>!`
 3. Select a Mission
 
-When a switch moves, the idle pages stop and the LCD shows that switch's message for its new position (ON or OFF), from `SWITCH_MSGS` in `mission_control.ino`. The most recent toggle controls the LCD.
+When a switch moves, the idle pages stop and the LCD shows that switch's name on line 1 and "Switch X active" (or "Switch X off") on line 2, from `SWITCH_MSGS` in `mission_control.ino`. The most recent toggle controls the LCD.
 
 Set the name by editing `ASTRONAUT_NAME` in the Configuration section at the top of `mission_control.ino` (max 15 characters).
 

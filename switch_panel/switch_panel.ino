@@ -26,7 +26,8 @@
     12-16    Switch 4 ON "Mission Brief" (one picked at random)
     17-19    Switch 5 ON "Spacewalk"     (one picked at random)
     9        Switch 6 ON (placeholder - set your own track)
-    OFF position: set OFF_TRACKS below (0 = no audio)
+    OFF position: plays a new track (random from FIRST_TRACK..LAST_TRACK, never the
+                  one just played). Set a switch's OFF_TRACKS entry to force a fixed track.
 
   Message sent to Arduino B (9600 baud, text line):
     "S" + six characters + newline, e.g. "S010001\n"
@@ -53,7 +54,9 @@ const uint16_t BOOT_TRACK = 1;
 const unsigned long BOOT_GRACE_MS = 2000;  // no switch audio while the boot track plays
 
 // Track played when a switch moves to its OFF position (0 = no audio). Order = Switch 1..6.
-const uint16_t OFF_TRACKS[] = {0, 0, 0, 0, 0, 0};
+const uint16_t OFF_TRACKS[] = {0, 0, 0, 0, 0, 0};   // 0 = pick a new random track
+const uint16_t FIRST_TRACK  = 2;                    // pool for OFF-position tracks
+const uint16_t LAST_TRACK   = 19;                   // highest track number on the SD card
 
 const unsigned long DEBOUNCE_MS  = 30;
 const unsigned long HEARTBEAT_MS = 250;
@@ -142,7 +145,7 @@ void sendState() {
 // index is 0-5 (Switch 1-6); isOn is true when the switch is in its active position.
 void onSwitchChanged(uint8_t index, bool isOn) {
   if (!isOn) {                              // OFF position
-    if (OFF_TRACKS[index]) playTrack(OFF_TRACKS[index]);
+    playTrack(OFF_TRACKS[index] ? OFF_TRACKS[index] : pickNewTrack());
     return;
   }
 
@@ -171,6 +174,18 @@ void onSwitchChanged(uint8_t index, bool isOn) {
   }
 }
 
+uint16_t lastTrack = 0;                     // most recently started track
+
 void playTrack(uint16_t track) {
+  lastTrack = track;
   if (playerReady) player.play(track);
+}
+
+// Random track from FIRST_TRACK..LAST_TRACK that differs from the last one played.
+uint16_t pickNewTrack() {
+  uint16_t t;
+  do {
+    t = random(FIRST_TRACK, LAST_TRACK + 1);
+  } while (t == lastTrack);
+  return t;
 }

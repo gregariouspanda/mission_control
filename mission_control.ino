@@ -68,12 +68,12 @@ const uint8_t NUM_PAGES = sizeof(LCD_PAGES) / sizeof(LCD_PAGES[0]);
 // Order = Switch 1..6. Edit the text to suit. Each line is max 16 characters.
 struct SwitchMsg { Page on; Page off; };
 const SwitchMsg SWITCH_MSGS[] = {
-  { { "Switch 1",     "ON"  }, { "Switch 1",     "OFF" } },
-  { { "Comms",        "ON"  }, { "Comms",        "OFF" } },
-  { { "Navigation",   "ON"  }, { "Navigation",   "OFF" } },
-  { { "Mission Brief","ON"  }, { "Mission Brief","OFF" } },
-  { { "Spacewalk",    "ON"  }, { "Spacewalk",    "OFF" } },
-  { { "Switch 6",     "ON"  }, { "Switch 6",     "OFF" } },
+  { { "Auxiliary",     "Switch 1 active" }, { "Auxiliary",     "Switch 1 off" } },
+  { { "Comms",         "Switch 2 active" }, { "Comms",         "Switch 2 off" } },
+  { { "Navigation",    "Switch 3 active" }, { "Navigation",    "Switch 3 off" } },
+  { { "Mission Brief", "Switch 4 active" }, { "Mission Brief", "Switch 4 off" } },
+  { { "Spacewalk",     "Switch 5 active" }, { "Spacewalk",     "Switch 5 off" } },
+  { { "Auxiliary",     "Switch 6 active" }, { "Auxiliary",     "Switch 6 off" } },
 };
 
 // ---------- Hardware objects ----------
