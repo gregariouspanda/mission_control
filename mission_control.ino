@@ -94,6 +94,9 @@ bool          inputsEnabled = false;
 
 uint8_t       lcdPage = 0;
 unsigned long lcdLastSwapMs;
+unsigned long lastRxMs = 0;                   // last valid message from the Switch Panel
+bool          noLinkShown = false;
+const unsigned long LINK_TIMEOUT_MS = 2000;   // no valid message for this long = link down
 bool          lcdRotating = true;             // stops once the timer expires
 
 // ---------- Setup ----------
@@ -145,7 +148,7 @@ void loop() {
 }
 
 // ---------- Link from the Switch Panel ----------
-// Messages look like "S010001\n" ('1' = that switch is active). Calls
+// Messages look like "S0100012\n" (six states plus a check digit) ('1' = that switch is active). Calls
 // onSwitchChanged() once per change. The first message only sets the baseline.
 void updateLink() {
   while (Serial.available()) {
@@ -156,9 +159,22 @@ void updateLink() {
       continue;
     }
     rxBuf[rxLen] = '\0';
-    if (rxLen == NUM_SWITCHES + 1 && rxBuf[0] == 'S') applyStates(rxBuf + 1);
+    if (rxLen == NUM_SWITCHES + 2 && rxBuf[0] == 'S' && checkDigitOk(rxBuf + 1)) {
+      lastRxMs = millis();
+      applyStates(rxBuf + 1);
+    }
     rxLen = 0;
   }
+}
+
+// The last character is the count of '1's; a garbled message fails this and is ignored.
+bool checkDigitOk(const char* states) {
+  uint8_t ones = 0;
+  for (uint8_t i = 0; i < NUM_SWITCHES; i++) {
+    if (states[i] != '0' && states[i] != '1') return false;
+    if (states[i] == '1') ones++;
+  }
+  return states[NUM_SWITCHES] == '0' + ones;
 }
 
 void applyStates(const char* states) {
@@ -202,8 +218,24 @@ void showPage(uint8_t idx) {
 }
 
 void updateLcd() {
-  if (!lcdRotating) return;
   unsigned long now = millis();
+
+  // Link status: the panel sends every 250 ms, so silence means a wiring problem.
+  bool linkUp = (lastRxMs != 0) && (now - lastRxMs <= LINK_TIMEOUT_MS);
+  if (!linkUp) {
+    if (!noLinkShown && now >= 3000) {
+      noLinkShown = true;
+      showMessage("No panel link", "Check D0 wire");
+    }
+    return;
+  }
+  if (noLinkShown) {                        // link came back: restore the display
+    noLinkShown = false;
+    lcdLastSwapMs = now;
+    showPage(lcdPage);
+  }
+
+  if (!lcdRotating) return;
   if (now - lcdLastSwapMs >= LCD_ROTATE_MS) {
     lcdLastSwapMs = now;
     lcdPage = (lcdPage + 1) % NUM_PAGES;

@@ -132,11 +132,16 @@ void loop() {
 void sendState() {
   lastSendMs = millis();
   char msg[NUM_SWITCHES + 1];
-  for (uint8_t i = 0; i < NUM_SWITCHES; i++) msg[i] = switchState[i] ? '1' : '0';
+  uint8_t ones = 0;
+  for (uint8_t i = 0; i < NUM_SWITCHES; i++) {
+    msg[i] = switchState[i] ? '1' : '0';
+    if (switchState[i]) ones++;
+  }
   msg[NUM_SWITCHES] = '\0';
 
   link.print('S');
-  link.println(msg);
+  link.print(msg);
+  link.println(ones);                 // check digit: how many switches are active
   Serial.print(F("S"));
   Serial.println(msg);
 }

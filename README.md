@@ -14,7 +14,7 @@ Two Arduino Uno R3 boards for a mission-control prop:
 | D2 (TX) | D0 (RX) |
 | GND | GND |
 
-Unplug the D0 wire from board B while uploading its sketch. Board A sends a text line like `S010001` at 9600 baud, where each character is `1` when that switch is active (its pin pulled LOW). It sends on every change and repeats every 250 ms.
+Unplug the D0 wire from board B while uploading its sketch. Board A sends a text line like `S0100012` at 9600 baud: six characters that are `1` when that switch is active (its pin pulled LOW), then a check digit equal to the number of `1`s. Board B ignores any line whose check digit doesn't match, and its LCD shows "No panel link / Check D0 wire" if no valid line arrives for 2 seconds. It sends on every change and repeats every 250 ms.
 
 ## Pin chart
 
