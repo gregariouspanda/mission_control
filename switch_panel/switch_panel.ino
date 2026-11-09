@@ -1,7 +1,7 @@
 /*
   Switch Panel (Arduino A)
 
-  Reads six on-on toggle switches, lights the matching LEDs, plays the audio for
+  Reads five on-on toggle switches and one on/off switch (Switch 6), lights the matching LEDs, plays the audio for
   each switch position on the DFPlayer Mini, and sends the switch states to the
   Mission Control Arduino (Arduino B), which handles the LCD and 8-digit display.
 
@@ -25,7 +25,7 @@
     6, 8     Switch 3 ON "Navigation"    (one picked at random)
     12-16    Switch 4 ON "Mission Brief" (one picked at random)
     17-19    Switch 5 ON "Spacewalk"     (one picked at random)
-    9        Switch 6 ON (placeholder - set your own track)
+    9        Switch 6 ON (placeholder - set your own track); OFF stops audio
     OFF position: plays a new track (random from FIRST_TRACK..LAST_TRACK, never the
                   one just played). Set a switch's OFF_TRACKS entry to force a fixed track.
 
@@ -57,6 +57,10 @@ const unsigned long BOOT_GRACE_MS = 2000;  // no switch audio while the boot tra
 const uint16_t OFF_TRACKS[] = {0, 0, 0, 0, 0, 0};   // 0 = pick a new random track
 const uint16_t FIRST_TRACK  = 2;                    // pool for OFF-position tracks
 const uint16_t LAST_TRACK   = 19;                   // highest track number on the SD card
+
+// true = plain on/off switch: turning it OFF stops the audio instead of starting a new track.
+// Order = Switch 1..6. (Wiring is the same: one throw to GND, pin uses INPUT_PULLUP.)
+const bool ON_OFF_SWITCH[] = {false, false, false, false, false, true};
 
 const unsigned long DEBOUNCE_MS  = 30;
 const unsigned long HEARTBEAT_MS = 250;
@@ -150,6 +154,10 @@ void sendState() {
 // index is 0-5 (Switch 1-6); isOn is true when the switch is in its active position.
 void onSwitchChanged(uint8_t index, bool isOn) {
   if (!isOn) {                              // OFF position
+    if (ON_OFF_SWITCH[index]) {             // on/off switch: just silence the audio
+      if (playerReady) player.stop();
+      return;
+    }
     playTrack(OFF_TRACKS[index] ? OFF_TRACKS[index] : pickNewTrack());
     return;
   }

@@ -4,7 +4,7 @@ Two Arduino Uno R3 boards for a mission-control prop:
 
 | Board | Sketch | Job |
 |---|---|---|
-| A: Switch Panel | [`switch_panel/switch_panel.ino`](switch_panel/switch_panel.ino) | Reads six on-on toggle switches, lights the six LEDs, plays the DFPlayer audio for each switch position, and sends the switch states to board B |
+| A: Switch Panel | [`switch_panel/switch_panel.ino`](switch_panel/switch_panel.ino) | Reads five on-on toggle switches and one on/off switch (Switch 6), lights the six LEDs, plays the DFPlayer audio for each switch position, and sends the switch states to board B |
 | B: Mission Control | [`mission_control.ino`](mission_control.ino) | Receives the switch states and drives the LCD (message follows the switch position), and 8-digit timer display |
 
 ## Link between the boards
@@ -107,7 +107,7 @@ Files are named `0001.mp3`, `0002.mp3`, ... in the SD card root of the DFPlayer 
 | Switch 3 "Navigation" | 6 or 8 |
 | Switch 4 "Mission Brief" | random of 12-16 |
 | Switch 5 "Spacewalk" | random of 17-19 |
-| Switch 6 | 9 (placeholder) |
+| Switch 6 (on/off) | 9 (placeholder); turning it OFF stops the audio |
 
 Switches are ignored for 2 seconds after boot so the boot track isn't cut off. Audio plays when a switch moves to its ON position. When a switch moves from ON to OFF it starts a new record: a random track from `FIRST_TRACK` to `LAST_TRACK` (2 to 19) that is never the one just played. To use a fixed track for a switch's OFF position instead, set its entry in `OFF_TRACKS` in `switch_panel.ino` (0 = random).
 

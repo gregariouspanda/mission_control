@@ -73,7 +73,7 @@ const SwitchMsg SWITCH_MSGS[] = {
   { { "Navigation",    "Switch 3 active" }, { "Navigation",    "Switch 3 off" } },
   { { "Mission Brief", "Switch 4 active" }, { "Mission Brief", "Switch 4 off" } },
   { { "Spacewalk",     "Switch 5 active" }, { "Spacewalk",     "Switch 5 off" } },
-  { { "Auxiliary",     "Switch 6 active" }, { "Auxiliary",     "Switch 6 off" } },
+  { { "Auxiliary",     "Switch 6 ON"     }, { "Auxiliary",     "Switch 6 OFF"    } },
 };
 
 // ---------- Hardware objects ----------
